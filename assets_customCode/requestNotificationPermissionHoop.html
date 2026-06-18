@@ -1,0 +1,92 @@
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const FirebaseMessaging = window.Capacitor.Plugins.FirebaseMessaging;
+        const App = window.Capacitor.Plugins.App;
+        const permissionButton = document.getElementById('manualPushPermissionRequest');
+        var initState;
+
+        /**
+         * Main check function to determine UI state
+         */
+        const checkAndSyncPermissions = async () => {
+            try {
+                const result = await FirebaseMessaging.checkPermissions();
+
+                if (result.receive === 'granted') {
+                    permissionButton.style.innerText = 'Notifications Enabled';
+                    initState = 'granted';
+                } else {
+                    permissionButton.addEventListener('click', handleRequestPermission, { once: true });
+                    initState = 'not granted';
+                }
+            } catch (error) {
+                console.error('Error checking permissions:', error);
+            }
+        };
+
+        /**
+         * Request Permissions Handler
+         */
+        const handleRequestPermission = async () => {
+            try {
+                const result = await FirebaseMessaging.requestPermissions();
+
+                if (result.receive === 'granted') {
+                    permissionButton.style.display = 'Notifications Enabled';
+                    handleRedirect();
+                } else {
+                    disableButtonUI();
+                }
+            } catch (error) {
+                console.error('Error requesting permissions:', error);
+                disableButtonUI();
+            }
+        };
+
+        const handleReturnToApp = async () => {
+            if (initState === 'granted') { return }
+
+            const result = await FirebaseMessaging.checkPermissions();
+
+            if (result.receive === 'granted') {
+                handleRedirect();
+            }
+
+        }
+
+        const handleRedirect = async () => {
+            const baseUrl = window.location.origin;
+            const cookieVal = getCookie('currentEvent');
+
+            const path = (cookieVal && cookieVal.length > 0)
+                ? `/${encodeURIComponent(cookieVal)}/main-page/`
+                : '/select-event/';
+
+            const targetUrl = new URL(path, baseUrl).href;
+            window.location.href = targetUrl;
+        }
+
+        const getCookie = (name) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        };
+
+        const disableButtonUI = () => {
+            permissionButton.style.opacity = '0.5';
+            permissionButton.style.pointerEvents = 'none';
+            permissionButton.innerText = "Please enter your phone's setting to enable notifications";
+        };
+
+        // Run on initial load
+        checkAndSyncPermissions();
+
+        // Listen for the app returning from background (user coming back from Settings)
+        App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                handleReturnToApp();
+            }
+        });
+    });
+</script>

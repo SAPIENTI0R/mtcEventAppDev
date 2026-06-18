@@ -1,0 +1,21 @@
+{
+  "appId": "com.mtcscouting.event.dev",
+  "appName": "Council Event App Dev",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  },
+  "server": {
+    "url": "https://app.techmv.com",
+    "allowNavigation": ["app.techmv.com", "*.techmv.com"],
+    "cleartext": true
+  }
+}

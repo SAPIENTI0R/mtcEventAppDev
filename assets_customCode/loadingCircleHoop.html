@@ -1,0 +1,31 @@
+<style>
+  .loader {
+    border: 8px solid #E9E9E4; /* Light tan background */
+    border-top: 8px solid #003366; /* Dark Blue for the "spin" */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Optional: Center the loader on the screen */
+  .center-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    font-family: sans-serif;
+  }
+</style>
+
+<div class="center-container">
+  <div class="loader"></div>
+  <p>Updating Preferences...</p>
+</div>

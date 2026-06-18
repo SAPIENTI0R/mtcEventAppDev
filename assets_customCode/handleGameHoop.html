@@ -1,0 +1,206 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    // Plugin constants
+    const FirebaseFunctions = window.Capacitor.Plugins.FirebaseFunctions;
+    const Toast = window.Capacitor.Plugins.Toast;
+    const Haptics = window.Capacitor.Plugins.Haptics;
+
+
+    // Sync user with firebase
+    // Data is passed from the Game-Helper PHP
+    const syncUserWithFirebase = async () => {
+        try {
+            if (!wpUserData.isLoggedIn) {
+                // If the user is not logged in
+                console.log("Not logged in");
+                document.querySelector('#notLoggedIn').style.display = 'block';
+                document.querySelector('#scanCodeButton').style.display = 'none';
+
+            } else if (wpUserData.firebaseDocId) {
+                // If the user already has a firebase id
+                console.log('User already initialized in Firebase. Doc ID:', wpUserData.firebaseDocId);
+
+                handleUserExists(wpUserData);
+
+            } else {
+                // If the user does not have a firebase id
+                console.log('Creating Firebase entry');
+                document.querySelector('#loadingIcon').style.display = 'block';
+
+                // Call Firebase Function
+                const functionResult = await FirebaseFunctions.callByName({
+                    name: 'initializeUser',
+                    data: {
+                        firstName: wpUserData.firstName,
+                        lastInitial: wpUserData.lastInitial,
+                        scoutingId: wpUserData.scoutingId,
+                        email: wpUserData.email
+                    },
+                });
+
+                const createdFirebaseDocId = functionResult.data.id;
+                const userId = wpUserData.userId;
+
+                // Update ACF field using REST API created by PHP
+                const response = await fetch(`${wpApiSettings.root}wp/v2/users/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': wpApiSettings.nonce // Authenticates the logged-in user
+                    },
+                    body: JSON.stringify({
+                        acf: {
+                            'field_69a87e04e3a06': createdFirebaseDocId
+                        }
+                    })
+                });
+
+                wpUserData.firebaseDocId = createdFirebaseDocId;
+                handleUserExists(wpUserData);
+            }
+
+        } catch (error) {
+            console.error('Sync failed:', error);
+            Toast.show({ text: error.message });
+        }
+    };
+
+    // Event listeners
+    document.addEventListener('deviceready', syncUserWithFirebase);
+    var startScanButton = document.querySelector('#startScanButton');
+    startScanButton.addEventListener("click", function () { scanCode() });
+
+    // --- Functions ---
+
+    async function handleUserExists(wpUserData) {
+        try {
+            document.querySelector('#loadingIcon').style.display = 'none';
+
+            // Update display name
+            const fullName = wpUserData.firstName + ' ' + wpUserData.lastInitial + '.';
+            document.querySelector('#insertName').textContent = fullName;
+            document.querySelector('#insertName').style.display = 'block';
+
+            // Create QR code
+            const qrContainer = document.querySelector('#insertQrCode');
+            new QRCode(qrContainer, {
+                text: wpUserData.firebaseDocId,
+                width: 256,
+                height: 256
+            });
+
+            // Call the 'getUserData' function
+            const docId = wpUserData.firebaseDocId;
+            const functionResult = await FirebaseFunctions.callByName({
+                name: 'getUserData',
+                data: { docId: docId },
+            });
+
+            // Extract the returned data from the functionResult object
+            const { currentPoints, usersMet } = functionResult.data;
+
+            // Update the #currentPoints element
+            const pointsElement = document.querySelector('#insertCurrentPoints');
+            pointsElement.textContent = currentPoints;
+
+            // Update the #usersMet element with a list
+            const usersMetElement = document.querySelector('#insertUsersMet');
+
+            if (usersMet.length > 0) {
+                // If the list has elements
+                const ul = document.createElement('ul');
+
+                usersMet.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = user;
+                    ul.prepend(li);
+                });
+
+                usersMetElement.appendChild(ul);
+                document.querySelector('#userListHolder').style.display = 'inline-block';
+            }
+
+            document.querySelector('#statsHolder').style.display = 'inline-block';
+
+        } catch (error) {
+            Toast.show({ text: error.message });
+        }
+
+    }
+
+    async function scanCode() {
+        const BarcodeScanner = window.Capacitor.Plugins.CapacitorBarcodeScanner;
+
+        try {
+            // Trigger the scan
+            const result = await BarcodeScanner.scanBarcode({
+                hint: 17,                // 17 = Scan all barcode types
+                cameraDirection: 1,      // 1 = Back camera
+                scanInstructions: "Point at another user's barcode\n\nPress the bottom button to scan",
+                scanButton: true         // Shows a manual cancel/scan button
+            });
+
+            // Handle the result
+            const scannedCode = result.ScanResult;
+            Haptics.notification({ type: 'SUCCESS' });
+            await handleCodeScanned(wpUserData.firebaseDocId, scannedCode);
+
+        } catch (error) {
+            console.error("Scanner error:", error);
+        }
+    }
+
+    async function handleCodeScanned(scannerCode, scannedCode) {
+        try {
+            // Call Firebase Function
+            const functionResult = await FirebaseFunctions.callByName({
+                name: 'executeScan',
+                data: {
+                    scannerUserId: scannerCode,
+                    scannedUserId: scannedCode
+                },
+            });
+
+            const result = functionResult.data.result;
+
+            if (result == "Success") {
+                const newPoints = functionResult.data.newPoints;
+                const userMet = functionResult.data.userMet;
+                const addedPoints = functionResult.data.addedPoints;
+
+                Toast.show({ text: 'Scan Successful! \nYou earned ' + addedPoints + ' points!' });
+
+                // Update the #currentPoints element
+                const pointsElement = document.querySelector('#insertCurrentPoints');
+                pointsElement.textContent = newPoints;
+
+                // Update the users met list
+                const container = document.querySelector('#insertUsersMet');
+                let targetUl = container.querySelector(':scope > ul');
+
+                // Create the new <li> element
+                const newLi = document.createElement('li');
+                newLi.textContent = userMet;
+
+                if (targetUl) {
+                    // If the list already exists, add to the top
+                    targetUl.prepend(newLi);
+                } else {
+                    // If the list doesn't exist, create it and add the first item
+                    targetUl = document.createElement('ul');
+                    targetUl.appendChild(newLi);
+
+                    container.appendChild(targetUl);
+                    document.querySelector('#userListHolder').style.display = 'inline-block';
+                }
+
+            } else {
+                Toast.show({ text: result });
+            }
+        }
+        catch (error) {
+            console.error("FB Func Error:", error);
+        }
+    }
+
+</script>
