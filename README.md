@@ -1,8 +1,12 @@
 # Middle Tennessee Council Event App <!-- omit from toc -->
 
-**Last updated June 18, 2026**
+**Last updated July 5, 2026**
 
 > The current Android build is available at [/builds/app-debug.apk](/builds/app-debug.apk)
+
+> The Github Repository for this project is [here](https://github.com/SAPIENTI0R/mtcEventAppDev).
+
+> The Firbase Console requires the Google Account login and is [here](https://console.firebase.google.com/u/0/project/councilapp3/).
 
 ### Table of Contents
 - [Core Information](#core-information)
@@ -15,6 +19,7 @@
   - [Software Setup](#software-setup)
     - [Visual Studio Code (VS Code)](#visual-studio-code-vs-code)
     - [NPM, Xcode, Android Studio, and Capacitor](#npm-xcode-android-studio-and-capacitor)
+    - [File Setup](#file-setup)
     - [Command Line Notes](#command-line-notes)
   - [Using Capacitor](#using-capacitor)
     - [Plugins](#plugins)
@@ -61,7 +66,7 @@ All the software used here is available for free, and much of it is open source.
 
 ### Visual Studio Code (VS Code)
 This is published by Microsoft and available [here](https://code.visualstudio.com/download). Once installed, click Extensions on the left side panel and search for WebNative and install it. This plugin offers a GUI to modify the Capacitor project easier without the use of a command line.  
-To open a folder in VS Code, use `File` --> `Open Folder` or drag the folder onto VS Code. You can save this workspace by using `File` --> `Save Workspace As`. This will make the workspace a file that you can easily open as well as save the settings in the workspace.
+To open a folder in VS Code, use `File` --> `Open Folder` or drag the folder onto VS Code. You can save this workspace by using `File` --> `Save Workspace As`. This will make the workspace accessible via a file that you can easily open as well as save the settings in the workspace.
 
 ### NPM, Xcode, Android Studio, and Capacitor
 Go [here](https://nodejs.org/en/download#:~:text=Or%20get%20a%20prebuilt%20Node%2Ejs) to install the Node Package Manager (NPM). It is easiest to install the prebuilt Node.js version by using the section at the bottom.
@@ -69,6 +74,13 @@ Go [here](https://nodejs.org/en/download#:~:text=Or%20get%20a%20prebuilt%20Node%
 Follow [these instructions](https://capacitorjs.com/docs/getting-started/environment-setup) to install Xcode, Xcode Command Line Tools, Android Studio, and the Android SDK.
 
 [This page](https://capacitorjs.com/docs/getting-started) shows how to setup Capacitor from scratch if you are building a new app. This shouldn't be needed if you are copying an app. To set up Capacitor in an app that you already copied into a new folder, navigate to the folder in a command line and use `npm install` to install the dependencies.
+
+### File Setup
+Once the above software is setup, clone the Github Repo with `git clone https://github.com/SAPIENTI0R/mtcEventAppDev FOLDER_PATH` in the command line. 
+
+Then run `npm i` in the command line to install all needed dependencies. 
+
+ The project will need a `google-services.json` file that can be found in the Firebase Console. Go to `Settings` and then scroll down to download the file. Put this file into the project root.
 
 ### Command Line Notes
 Many steps here will require the use of a command line. This can be done on MacOS using the `Terminal` app and on Windows using the `Command Prompt` app. You can also use `Terminal` --> `New Terminal` in VS Code to enter the command line interface. This will open a command line interface inside the current folder. The table below gives the navigation commands used by the command line interface.
@@ -105,11 +117,11 @@ The documentation for the first-party plugins is available [here](https://capaci
 ### Updating Plugins
 Plugins can be updated using the command line interface, but the easiest way is to use the WebNative VS Code Extension.
 
-Click on the extension in the left panel (WN) and click on `Packages`. Available updates are shown `NAME #.#.# --> #.#.#`. To update all the packages at once, hover where it says `@capacitor` and click the lightbulb icon. Then click `Upgrade` in the window that pops up.
+Click on the extension in the left panel (WN) and click on `Packages`. Available updates are shown in the format: `NAME #.#.# --> #.#.#`. To update all the packages at once, hover where it says `@capacitor` and click the lightbulb icon. Then click `Upgrade` in the window that pops up.
 
 The same process can be used for the plugins (`@capacitor-firebase` and `@capacitor`) which are below.
 
-You will then need to press `Sync` (under `Projects`) to sync the updates to their respective platform folders. Then follow the [Releasing](#building-and-releasing) directions below.
+You will then need to press `Sync` (under `Projects`) to sync the updates to their respective platform folders. Then follow the [Building and Releasing](#building-and-releasing) directions below.
 
 ### App Icons
 
@@ -120,6 +132,8 @@ You will then need to press `Sync` (under `Projects`) to sync the updates to the
 ### Building and Releasing
 
 ## Using Firebase
+Firebase is Google's mobile and app development platform. It is used for push notifications (Android and iOS), the game, and _______?
+
 `cd firebase`
 
 `firebase login --reauth`
