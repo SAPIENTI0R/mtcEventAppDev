@@ -23,6 +23,8 @@ dependencies {
     implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-toast')
+    implementation project(':capacitor-dialog')
+    implementation project(':capacitor-toast')
 
 }
 

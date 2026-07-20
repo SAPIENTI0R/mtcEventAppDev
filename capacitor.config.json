@@ -1,7 +1,7 @@
 {
   "appId": "com.mtcscouting.event.dev",
   "appName": "Council Event App Dev",
-  "webDir": "dist",
+  "webDir": "src",
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": true
