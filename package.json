@@ -1,12 +1,8 @@
 {
-  "name": "mtcscouting-event-app-dev",
-  "version": "1.0.0",
-  "description": "The dev version of MTC Scouting's event app",
+  "name": "com.mtcscouting.event",
+  "version": "0.1.0",
+  "description": "Middle Tennessee Council's Event App",
   "type": "module",
-  "keywords": [
-    "capacitor",
-    "mobile"
-  ],
   "scripts": {
     "start": "vite",
     "build": "vite build",

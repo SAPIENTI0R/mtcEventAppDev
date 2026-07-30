@@ -1,6 +1,6 @@
 {
-  "appId": "com.mtcscouting.event.dev",
-  "appName": "Council Event App Dev",
+  "appId": "com.mtcscouting.event",
+  "appName": "Council Event App",
   "webDir": "src",
   "plugins": {
     "SplashScreen": {
