@@ -1,6 +1,6 @@
 {
   "appId": "com.mtcscouting.event",
-  "appName": "Council Event App",
+  "appName": "Middle Tennessee Scouting",
   "webDir": "src",
   "plugins": {
     "SplashScreen": {
