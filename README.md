@@ -1,6 +1,6 @@
 # Middle Tennessee Council Event App <!-- omit from toc -->
 
-**Last updated July 5, 2026**
+**Last updated July 31, 2026**
 
 > The current Android build is available at [/builds/app-debug.apk](/builds/app-debug.apk)
 
@@ -80,7 +80,7 @@ Once the above software is setup, clone the Github Repo with `git clone https://
 
 Then run `npm i` in the command line to install all needed dependencies. 
 
- The project will need a `google-services.json` file that can be found in the Firebase Console. Go to `Settings` and then scroll down to download the file. Put this file into the project root.
+The project will need a `google-services.json` file that can be found in the Firebase Console. Go to `Settings` and then scroll down to download the file. Put this file into the project root folder.
 
 ### Command Line Notes
 Many steps here will require the use of a command line. This can be done on MacOS using the `Terminal` app and on Windows using the `Command Prompt` app. You can also use `Terminal` --> `New Terminal` in VS Code to enter the command line interface. This will open a command line interface inside the current folder. The table below gives the navigation commands used by the command line interface.
@@ -121,7 +121,11 @@ Click on the extension in the left panel (WN) and click on `Packages`. Available
 
 The same process can be used for the plugins (`@capacitor-firebase` and `@capacitor`) which are below.
 
+*Alternatively, you can run `npm update` in the terminal to update all packages at once.*
+
 You will then need to press `Sync` (under `Projects`) to sync the updates to their respective platform folders. Then follow the [Building and Releasing](#building-and-releasing) directions below.
+
+*Alternatively, you can run `npx cap sync` in the terminal to sync the updates.*
 
 ### App Icons
 
