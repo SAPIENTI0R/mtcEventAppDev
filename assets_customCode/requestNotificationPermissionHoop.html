@@ -1,77 +1,82 @@
 <style>
-    #manualPushPermissionRequest {
-        display: none;
-    }
+  #manualPushPermissionRequest {
+    display: none;
+  }
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        const FirebaseMessaging = window.Capacitor.Plugins.FirebaseMessaging;
-        const App = window.Capacitor.Plugins.App;
-        const permissionButton = document.getElementById('manualPushPermissionRequest');
+  document.addEventListener('DOMContentLoaded', async () => {
+    const FirebaseMessaging = window.Capacitor.Plugins.FirebaseMessaging;
+    const App = window.Capacitor.Plugins.App;
+    const permissionButton = document.getElementById(
+      'manualPushPermissionRequest',
+    );
 
-        /**
-         * Standardized UI update based on permission state
-         */
-        const updateUI = (status) => {
-            if (status === 'granted') {
-                permissionButton.style.display = 'none';
-            } else if (status === 'denied') {
-                permissionButton.style.display = 'block';
-                permissionButton.style.opacity = '0.5';
-                permissionButton.style.pointerEvents = 'none';
-                permissionButton.innerText = "Please enter your phone's settings to enable notifications";
-            } else {
-                permissionButton.style.display = 'block';
-                permissionButton.style.opacity = '1';
-                permissionButton.style.pointerEvents = 'auto';
+    /**
+     * Standardized UI update based on permission state
+     */
+    const updateUI = (status) => {
+      if (status === 'granted') {
+        permissionButton.style.display = 'none';
+      } else if (status === 'denied') {
+        permissionButton.style.display = 'block';
+        permissionButton.style.opacity = '0.5';
+        permissionButton.style.pointerEvents = 'none';
+        permissionButton.innerText =
+          "Please enter your phone's settings to enable notifications";
+      } else {
+        permissionButton.style.display = 'block';
+        permissionButton.style.opacity = '1';
+        permissionButton.style.pointerEvents = 'auto';
 
-                // Clear any previous listener instance before adding the new one
-                permissionButton.removeEventListener('click', handleRequestPermission);
-                permissionButton.addEventListener('click', handleRequestPermission, { once: true });
-            }
-        };
-
-        /**
-         * Checks state, updates UI, and returns status so initialization logic knows if it can prompt
-         */
-        const syncPermissions = async () => {
-            try {
-                const result = await FirebaseMessaging.checkPermissions();
-                updateUI(result.receive);
-                return result.receive;
-            } catch (error) {
-                console.error('Error checking permissions:', error);
-                return 'prompt';
-            }
-        };
-
-        /**
-         * Triggered on user button click or automatically on page load
-         */
-        const handleRequestPermission = async () => {
-            try {
-                const result = await FirebaseMessaging.requestPermissions();
-                updateUI(result.receive);
-            } catch (error) {
-                console.error('Error requesting permissions:', error);
-                updateUI('denied'); // Fixed missing function reference
-            }
-        };
-
-        // Initialize state check on page load
-        const initialStatus = await syncPermissions();
-
-        // If permission has not been decided yet, prompt the user immediately
-        if (initialStatus !== 'granted' && initialStatus !== 'denied') {
-            await handleRequestPermission();
-        }
-
-        // Listen for the app returning from background
-        App.addListener('appStateChange', async ({ isActive }) => {
-            if (isActive) {
-                await syncPermissions();
-            }
+        // Clear any previous listener instance before adding the new one
+        permissionButton.removeEventListener('click', handleRequestPermission);
+        permissionButton.addEventListener('click', handleRequestPermission, {
+          once: true,
         });
+      }
+    };
+
+    /**
+     * Checks state, updates UI, and returns status so initialization logic knows if it can prompt
+     */
+    const syncPermissions = async () => {
+      try {
+        const result = await FirebaseMessaging.checkPermissions();
+        updateUI(result.receive);
+        return result.receive;
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        return 'prompt';
+      }
+    };
+
+    /**
+     * Triggered on user button click or automatically on page load
+     */
+    const handleRequestPermission = async () => {
+      try {
+        const result = await FirebaseMessaging.requestPermissions();
+        updateUI(result.receive);
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+        updateUI('denied'); // Fixed missing function reference
+      }
+    };
+
+    // Initialize state check on page load
+    const initialStatus = await syncPermissions();
+
+    // If permission has not been decided yet, prompt the user immediately
+    if (initialStatus !== 'granted' && initialStatus !== 'denied') {
+      await handleRequestPermission();
+    }
+
+    // Listen for the app returning from background
+    App.addListener('appStateChange', async ({ isActive }) => {
+      if (isActive) {
+        await syncPermissions();
+      }
     });
+  });
 </script>

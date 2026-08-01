@@ -1,4 +1,4 @@
-// ----- Intercept pdf clicks and open them using Capacitor ----- 
+// ----- Intercept pdf clicks and open them using Capacitor -----
 document.addEventListener('click', function (e) {
   const element = e.target.closest('a');
   if (element && element.href.endsWith('.pdf')) {

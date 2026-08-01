@@ -35,7 +35,7 @@
     "@capacitor/dialog": "^8.0.1",
     "@capacitor/toast": "^8.0.1",
     "firebase-functions": "^7.3.0",
-    "prettier": "3.9.6",
+    "prettier": "^3.9.6",
     "vite": "8.1.5"
   },
   "author": "",
