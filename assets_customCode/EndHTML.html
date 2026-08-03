@@ -14,7 +14,7 @@
 
     /* Positioning logic */
     position: fixed;
-    bottom: 20px;
+    top: 20px;
     left: 20px;
     z-index: 1000;
     padding: 10px 10px;
@@ -38,15 +38,10 @@
   <span>Back</span>
 </a>
 
-<!-- Hide it if we are on the root/main-page/install/select-event pages -->
+<!-- Hide it if we are at root or one layer deep with 4 numbers (i.e. an event main page) -->
 <script>
   let path = window.location.pathname;
-  if (
-    path === '/' ||
-    path.includes('main-page') ||
-    path.includes('install') ||
-    path.includes('select-event')
-  ) {
+  if (/^\/(?:[^/]*\d{4}[^/]*\/?)?$/.test(path)) {
     document.getElementById('back-button').style.display = 'none';
   }
 </script>
