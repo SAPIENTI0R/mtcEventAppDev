@@ -1,6 +1,6 @@
 # Middle Tennessee Council Event App <!-- omit in toc -->
 
-**Last updated July 31, 2026**
+**Last updated August 2, 2026**
 
 > The current Android build is available at [/builds/app-debug.apk](/builds/app-debug.apk)
 
@@ -26,6 +26,7 @@
     - [Plugins](#plugins)
     - [Updating Plugins](#updating-plugins)
     - [App Icons and Splash Screen Icons](#app-icons-and-splash-screen-icons)
+    - [App Name](#app-name)
     - [Testing](#testing)
     - [Building and Releasing](#building-and-releasing)
   - [Using Firebase](#using-firebase)
@@ -157,9 +158,16 @@ A description of the needed icon files is in the table below.
 | Icon Foreground    | `android/icon-foreground.png` | App icon for Android Material You | at least 432x432 px (square) |
 | Icon Background    | `android/icon-background.png` | App icon for Android Material You | at least 432x432 px (square) |
 
-To generate these icons, click on the WebNative extension in the left panel (WN) and click `Configuration`. Then click `Rebuild` next to `Splash Screen and Icon`. Wait for this to finish, then sync the files with the `Sync` button or `npx cap sync`.
+To generate these icons, click on the WebNative extension in the left panel (WN) and click `Configuration`. Then click `Rebuild` next to `Splash Screen and Icon`. Wait for this to finish, then sync the files with the `Sync` button or `npx cap sync`. Then, follow the [Building and Releasing](#building-and-releasing) directions below.
 
-Then, follow the [Building and Releasing](#building-and-releasing) directions below.
+### App Name
+To change the name of the app when installed on Android, like the display name on the homescreen, go to [android\app\src\main\res\values\strings.xml](android\app\src\main\res\values\strings.xml) and edit the `app_name` and `title_activity_main` lines. Then, follow the [Building and Releasing](#building-and-releasing) directions below.
+
+// APPLE INSTRUCTIONS
+
+If you want to change the name on the Google Play Store // INSTRUCTIONS
+
+If you want to change the name on the Apple App Store // INSTRUCTIONS
 
 ### Testing
 
