@@ -1,6 +1,6 @@
 # Middle Tennessee Council Event App <!-- omit in toc -->
 
-**Last updated August 2, 2026**
+**Last updated August 3, 2026**
 
 > The current Android build is available at [/builds/app-debug.apk](/builds/app-debug.apk)
 
@@ -38,7 +38,7 @@
 
 ## High Level Overview
 
-This app is built using the [Capacitor](https://capacitorjs.com/) platform. This platform is used to create native Android and iOS apps from a website template. It links to https://app.techmv.com using the `server` command in _`capacitor.config.json`_. This enables all the native app integrations like haptics, notifications, and camera access. It also manages the app icons.
+This app is built using the [Capacitor](https://capacitorjs.com/) platform. This platform is used to create native Android and iOS apps from a website template. It links to https://ianrom2.dreamhosters.com using the `server` command in _`capacitor.config.json`_. This enables all the native app integrations like haptics, notifications, and camera access. It also manages the app icons.
 
 The content of the app is managed using the [WordPress](https://wordpress.org/) platform, which powers over 43% of the internet.
 

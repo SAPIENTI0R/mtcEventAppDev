@@ -14,8 +14,8 @@
     }
   },
   "server": {
-    "url": "https://app.techmv.com",
-    "allowNavigation": ["app.techmv.com", "*.techmv.com"],
+    "url": "https://ianrom2.dreamhosters.com",
+    "allowNavigation": ["ianrom2.dreamhosters.com", "*.ianrom2.dreamhosters.com"],
     "cleartext": true
   }
 }
