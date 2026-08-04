@@ -1,21 +1,3 @@
-/* TITLE */
-h1.wp-block-post-title {
-  font-family: var(--e-global-typography-primary-font-family), Sans-serif;
-  font-size: 1.5em;
-  font-weight: bold;
-  color: black;
-  padding-top: 20px;
-  padding-bottom: 30px;
-}
-
-/* FORMINATOR BUTTON OVERRIDE */
-.targetme span {
-  font-weight: bold;
-  border-radius: 8px; /* Adjust the px for more/less roundness */
-  padding: 2px 8px; /* Adding padding makes the corners visible */
-  display: inline-block; /* Required for rounded corners to show on spans */
-}
-
 /* ULTIMATE MEMBER BUTTON COLORS */
 /* Link colors */
 .um a.um-link,
