@@ -1,9 +1,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-  // Plugin constants
-  const FirebaseFunctions = window.Capacitor.Plugins.FirebaseFunctions;
-  const Toast = window.Capacitor.Plugins.Toast;
-  const Haptics = window.Capacitor.Plugins.Haptics;
 
   // Sync user with firebase
   // Data is passed from the Game-Helper PHP
@@ -73,8 +69,8 @@
 
   // Event listeners
   document.addEventListener('deviceready', syncUserWithFirebase);
-  var startScanButton = document.querySelector('#startScanButton');
-  startScanButton.addEventListener('click', function () {
+  const scanCodeButton = document.querySelector('#scanCodeButton');
+  scanCodeButton.addEventListener('click', function () {
     scanCode();
   });
 
@@ -137,8 +133,6 @@
   }
 
   async function scanCode() {
-    const BarcodeScanner = window.Capacitor.Plugins.CapacitorBarcodeScanner;
-
     try {
       // Trigger the scan
       const result = await BarcodeScanner.scanBarcode({
