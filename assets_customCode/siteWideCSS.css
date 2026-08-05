@@ -7,3 +7,9 @@ h1.wp-block-post-title {
   padding-top: 20px;
   padding-bottom: 30px;
 }
+
+/* SCROLL TO REFRESH */
+html, body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
