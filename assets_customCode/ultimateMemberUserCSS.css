@@ -1,0 +1,19 @@
+.um-header {
+  display: none;
+}
+
+#um_field_321_first_name, #um_field_321_last_name {
+  display: none;
+}
+
+.entry-content {
+  margin-top: 0px;
+}
+
+.um-profile-body {
+  padding-top: 0px;
+}
+
+.wp-block-post-title {
+  padding-bottom: 0px;
+}

@@ -1,32 +1,4 @@
-/* ULTIMATE MEMBER BUTTON COLORS */
-/* Link colors */
-.um a.um-link,
-.um .um-tip:hover,
-.um .um-field-radio.active:not(.um-field-radio-state-disabled) i,
-.um .um-field-checkbox.active:not(.um-field-radio-state-disabled) i,
-.um .um-member-name a:hover,
-.um .um-member-more a:hover,
-.um .um-member-less a:hover,
-.um .um-members-pagi a:hover,
-.um .um-cover-add:hover,
-.um .um-profile-subnav a.active,
-.um .um-item-meta a,
-.um-account-name a:hover,
-.um-account-nav a.current,
-.um-account-side li a.current span.um-account-icon,
-.um-account-side li a.current:hover span.um-account-icon,
-.um-dropdown li a:hover,
-i.um-active-color,
-span.um-active-color {
-  color: #003f87 !important;
-}
-
-.um a.um-link:hover,
-.um a.um-link-hvr:hover {
-  color: #003f87 !important;
-}
-
-/* Button colors */
+/* Ultimate Member Button Colors */
 .um .um-field-group-head,
 .picker__box,
 .picker__nav--prev:hover,
@@ -72,7 +44,6 @@ div.uimob800 .um-account-side li a.current:hover,
   background: #ce1126 !important;
 }
 
-/* Button alt colors */
 .um .um-button.um-alt,
 .um input[type='submit'].um-button.um-alt {
   background: #eeeeee !important;
@@ -81,4 +52,9 @@ div.uimob800 .um-account-side li a.current:hover,
 .um .um-button.um-alt:hover,
 .um input[type='submit'].um-button.um-alt:hover {
   background: #e5e5e5 !important;
+}
+
+/* Ultimate Member Account Page */
+.um-account-meta-img, .um-account-name, .um-account-profile-link {
+  display: none;
 }
