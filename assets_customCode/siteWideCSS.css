@@ -13,3 +13,8 @@ html, body {
   overscroll-behavior-y: contain;
   touch-action: pan-x pan-y;
 }
+
+/* FORMINATOR HTML LABEL */
+.delete-html-label label {
+  display: none !important;
+}
