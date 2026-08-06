@@ -7,7 +7,7 @@ const App = window.Capacitor.Plugins.App;
 const BarcodeScanner = window.Capacitor.Plugins.CapacitorBarcodeScanner;
 const Browser = window.Capacitor.Plugins.Browser;
 const Dialog = window.Capacitor.Plugins.Dialog;
-const Geolocation = window.Capacitor.Plugins.Geolocation;
+const Geolocate = window.Capacitor.Plugins.Geolocation;
 
 // ----- Request notification permissions -----
 const handleRequestPermission = async () => {
