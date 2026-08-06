@@ -113,7 +113,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     // 1. Configuration & Setup
     const isApp = !!window.Capacitor;
-    const graphhopperApiKey = 'eb79f45c-b759-4cfd-8928-b89dbe6fda11';
+    const orsApiKey =
+      'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjZjYzY1NjNkZmEwMzQ5MDZhOTUyMjcyZjc5ZDRiOWIwIiwiaCI6Im11cm11cjY0In0=';
 
     // Bounding box for Boxwell Scout Reservation: SW to NE
     const bounds = [
@@ -124,6 +125,7 @@
     let locationsMap = {};
     let currentRouteLayer = null;
     let destinationMarker = null;
+    let userMarker = null;
 
     // Helper function to create custom colored SVG markers
     function createColorMarker(colorStr) {
@@ -237,6 +239,7 @@
       // Clear previous markers/routes
       if (destinationMarker) map.removeLayer(destinationMarker);
       if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+      if (userMarker) map.removeLayer(userMarker);
       document.getElementById('bsr-directions').style.display = 'none';
 
       // Place marker for destination
@@ -254,78 +257,104 @@
       }
 
       // App Navigation Logic (Capacitor)
+      let userLat, userLon;
+
+      // Stage 1: Get User Location
       try {
         statusEl.innerText = 'Finding your location...';
         const position = await Geolocate.getCurrentPosition({
           enableHighAccuracy: true,
         });
-        const userLat = position.coords.latitude;
-        const userLon = position.coords.longitude;
+        userLat = position.coords.latitude;
+        userLon = position.coords.longitude;
 
+        // Draw the user marker immediately
+        userMarker = L.marker([userLat, userLon], {
+          icon: createColorMarker('var(--Scouting_Light_Blue)'),
+        })
+          .addTo(map)
+          .bindPopup('You are here');
+
+        // Adjust map to temporarily fit both markers while routing
+        map.fitBounds(
+          L.latLngBounds([userLat, userLon], [destCoords.lat, destCoords.lon]),
+          { padding: [50, 50] },
+        );
+      } catch (error) {
+        console.error('Location Error:', error);
+        statusEl.innerText =
+          'Cannot get location. Showing destination instead.';
+        map.flyTo([destCoords.lat, destCoords.lon], 16);
+        return;
+      }
+
+      // Stage 2: Calculate Route
+      try {
         statusEl.innerText = 'Calculating route...';
         await calculateRoute(userLat, userLon, destCoords.lat, destCoords.lon);
-        statusEl.innerText = '';
+        statusEl.innerText = ''; // Clear status on success
       } catch (error) {
-        console.error(error);
-        statusEl.innerText =
-          'Could not get your location or calculate a route. Showing destination instead.';
+        console.error('Routing Error:', error);
+        // This will print the raw system error to your native UI
+        statusEl.innerText = `Routing Error: ${error.message}`;
         map.flyTo([destCoords.lat, destCoords.lon], 16);
       }
     }
 
-    // 6. GraphHopper Routing
+    // 6. OpenRouteService Routing
     async function calculateRoute(startLat, startLon, endLat, endLon) {
-      // Foot profile for trails/camps, change to 'car' if needed
-      const url = `https://graphhopper.com/api/1/route?point=${startLat},${startLon}&point=${endLat},${endLon}&profile=foot&locale=en&calc_points=true&points_encoded=false&key=${graphhopperApiKey}`;
+      // ORS requires coordinates in longitude, latitude order
+      const url = `https://api.heigit.org/openrouteservice/v2/directions/foot-walking?api_key=${orsApiKey}&start=${startLon},${startLat}&end=${endLon},${endLat}`;
 
       const response = await fetch(url);
       const data = await response.json();
 
-      if (data.paths && data.paths.length > 0) {
-        const path = data.paths[0];
+      if (data.features && data.features.length > 0) {
+        const feature = data.features[0];
 
         // 1. Draw the Polyline
-        const coords = path.points.coordinates.map((c) => [c[1], c[0]]);
+        // ORS returns GeoJSON which is [lon, lat], Leaflet wants [lat, lon]
+        const coords = feature.geometry.coordinates.map((c) => [c[1], c[0]]);
         currentRouteLayer = L.polyline(coords, {
           color: 'blue',
           weight: 5,
         }).addTo(map);
 
-        // 2. Add user marker
-        L.marker([startLat, startLon], {
-          icon: createColorMarker('var(--Scouting_Dark_Blue)'),
-        })
-          .addTo(map)
-          .bindPopup('You are here');
-
-        // 3. Zoom map to fit the route
+        // 2. Zoom map to fit the route
         map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
 
-        // 4. GENERATE DIRECTIONS
-        if (path.instructions && path.instructions.length > 0) {
+        // 3. GENERATE DIRECTIONS
+        const steps = feature.properties.segments[0].steps;
+
+        if (steps && steps.length > 0) {
           const directionsList = document.getElementById('bsr-directions-list');
           directionsList.innerHTML = ''; // Clear old instructions
 
-          path.instructions.forEach((instruction) => {
+          steps.forEach((step) => {
             const li = document.createElement('li');
 
             // Convert meters to feet, round it, and add US commas
-            const distanceInFeet = Math.round(instruction.distance * 3.28084);
+            const distanceInFeet = Math.round(step.distance * 3.28084);
             const formattedDistance = distanceInFeet.toLocaleString('en-US');
 
             const distanceText =
-              instruction.distance > 0 ? ` (${formattedDistance} ft)` : '';
+              step.distance > 0 ? ` (${formattedDistance} ft)` : '';
 
-            // Set the text (e.g., "Turn left onto Trail A (1,480 ft)")
-            li.innerText = instruction.text + distanceText;
+            // Set the text (ORS uses 'instruction' instead of 'text')
+            li.innerText = step.instruction + distanceText;
             directionsList.appendChild(li);
           });
 
           // Reveal the directions panel
           document.getElementById('bsr-directions').style.display = 'block';
         }
+      } else if (data.error) {
+        // This extracts the exact reason ORS rejected the request
+        throw new Error(
+          `ORS API: ${data.error.message || JSON.stringify(data.error)}`,
+        );
       } else {
-        throw new Error('No route found');
+        throw new Error(`Unexpected Response: ${JSON.stringify(data)}`);
       }
     }
 
@@ -349,7 +378,6 @@
 <div class="bsr-map-container">
   <!-- Static Control Panel -->
   <div class="bsr-controls">
-    <label for="bsr-destination-input">Find a Location:</label>
     <div class="bsr-search-wrapper">
       <input
         type="text"
