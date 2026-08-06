@@ -1,3 +1,31 @@
+/* Ultimate Member Link Colors */
+.um a.um-link,
+.um .um-tip:hover,
+.um .um-field-radio.active:not(.um-field-radio-state-disabled) i,
+.um .um-field-checkbox.active:not(.um-field-radio-state-disabled) i,
+.um .um-member-name a:hover,
+.um .um-member-more a:hover,
+.um .um-member-less a:hover,
+.um .um-members-pagi a:hover,
+.um .um-cover-add:hover,
+.um .um-profile-subnav a.active,
+.um .um-item-meta a,
+.um-account-name a:hover,
+.um-account-nav a.current,
+.um-account-side li a.current span.um-account-icon,
+.um-account-side li a.current:hover span.um-account-icon,
+.um-dropdown li a:hover,
+i.um-active-color,
+span.um-active-color
+{
+    color: #ca1126 !important;
+}
+
+.um a.um-link:hover,
+.um a.um-link-hvr:hover {
+    color: #ca1126 !important;
+}
+
 /* Ultimate Member Button Colors */
 .um .um-field-group-head,
 .picker__box,
@@ -19,10 +47,11 @@ div.uimob800 .um-account-side li a.current:hover,
 .um a.um-button.um-disabled:hover,
 .um a.um-button.um-disabled:focus,
 .um a.um-button.um-disabled:active,
-.um input[type='submit'].um-button,
-.um input[type='submit'].um-button:focus,
-.um input[type='submit']:disabled:hover {
-  background: #ce1126 !important;
+.um input[type=submit].um-button,
+.um input[type=submit].um-button:focus,
+.um input[type=submit]:disabled:hover
+{
+    background: #ca1126 !important;
 }
 
 .um .um-field-group-head:hover,
@@ -40,18 +69,19 @@ div.uimob800 .um-account-side li a.current:hover,
 .picker--focused .picker__list-item--selected,
 .um .um-button:hover,
 .um a.um-button:hover,
-.um input[type='submit'].um-button:hover {
-  background: #ce1126 !important;
+.um input[type=submit].um-button:hover{
+    background: #ca1126 !important;
 }
 
-.um .um-button.um-alt,
-.um input[type='submit'].um-button.um-alt {
-  background: #eeeeee !important;
+/* Ultimate Member Button Alt Colors */
+.um .um-button.um-alt, 
+.um input[type=submit].um-button.um-alt {
+    background: #eeeeee !important;
 }
 
 .um .um-button.um-alt:hover,
-.um input[type='submit'].um-button.um-alt:hover {
-  background: #e5e5e5 !important;
+.um input[type=submit].um-button.um-alt:hover {
+    background: #817d7d !important;	
 }
 
 /* Ultimate Member Account Page */
