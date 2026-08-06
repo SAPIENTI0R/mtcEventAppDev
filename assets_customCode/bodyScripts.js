@@ -8,13 +8,3 @@ const BarcodeScanner = window.Capacitor.Plugins.CapacitorBarcodeScanner;
 const Browser = window.Capacitor.Plugins.Browser;
 const Dialog = window.Capacitor.Plugins.Dialog;
 const Geolocate = window.Capacitor.Plugins.Geolocation;
-
-// ----- Request notification permissions -----
-const handleRequestPermission = async () => {
-  try {
-    const result = await FirebaseMessaging.requestPermissions();
-    const result2 = await FirebaseMessaging.getToken();
-  } catch (error) {
-    console.error('Error requesting permissions:', error);
-  }
-};

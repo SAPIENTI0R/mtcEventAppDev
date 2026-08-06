@@ -1,0 +1,377 @@
+<!-- Leaflet CSS & JS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Leaflet Fullscreen CSS & JS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet.fullscreen@4.0.0/Control.FullScreen.css"
+/>
+<script src="https://unpkg.com/leaflet.fullscreen@4.0.0/Control.FullScreen.js"></script>
+
+<!-- CSS Styles-->
+<style>
+  .bsr-map-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 30px;
+    font-family: inherit;
+  }
+
+  .bsr-controls {
+    background: #f7f7f7;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+
+  .bsr-controls label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  .bsr-search-wrapper {
+    display: flex;
+    gap: 10px;
+  }
+
+  .bsr-search-wrapper input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+
+  .bsr-search-wrapper button {
+    padding: 10px 20px;
+    background: var(--Scouting_Red);
+    color: var(--White);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .bsr-search-wrapper button:hover {
+    filter: brightness(0.85);
+  }
+
+  #bsr-status-message {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--Scouting_Red);
+  }
+
+  #bsr-map {
+    height: 600px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    z-index: 1;
+  }
+
+  .custom-color-marker {
+    background: transparent;
+    border: none;
+  }
+
+  #bsr-directions {
+    background: #f7f7f7;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-top: -15px;
+  }
+
+  #bsr-directions h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+
+  #bsr-directions-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  #bsr-directions-list li {
+    margin-bottom: 8px;
+  }
+</style>
+
+<!-- JavaScript-->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // 1. Configuration & Setup
+    const isApp = !!window.Capacitor;
+    const graphhopperApiKey = 'eb79f45c-b759-4cfd-8928-b89dbe6fda11';
+
+    // Bounding box for Boxwell Scout Reservation: SW to NE
+    const bounds = [
+      [36.30766, -86.47862], // South-West
+      [36.32951, -86.44785], // North-East
+    ];
+
+    let locationsMap = {};
+    let currentRouteLayer = null;
+    let destinationMarker = null;
+
+    // Helper function to create custom colored SVG markers
+    function createColorMarker(colorStr) {
+      const svg = `<svg viewBox="0 0 24 24" width="30" height="42" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" style="fill: ${colorStr}; stroke: #ffffff; stroke-width: 1px;"/>
+    </svg>`;
+
+      return L.divIcon({
+        className: 'custom-color-marker',
+        html: svg,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42], // Anchors the bottom tip of the pin to the map coordinates
+        popupAnchor: [0, -35], // Positions the popup right above the pin
+      });
+    }
+
+    // 2. Initialize Map
+    const map = L.map('bsr-map', {
+      maxBounds: bounds,
+      maxBoundsViscosity: 1.0,
+    }).fitBounds(bounds);
+
+    // Explicitly add the fullscreen control
+    if (L.Control.FullScreen) {
+      map.addControl(
+        new L.Control.FullScreen({
+          position: 'topleft',
+        }),
+      );
+    } else {
+      console.error('The Fullscreen plugin failed to load.');
+    }
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    // 3. Fetch Locations from Overpass API
+    async function fetchLocations() {
+      const statusEl = document.getElementById('bsr-status-message');
+      statusEl.innerText = 'Loading map data...';
+
+      // Querying nodes and ways with names inside the bounds
+      const overpassQuery = `
+      [out:json][timeout:25];
+      (
+        node["name"](36.30766,-86.47862,36.32951,-86.44785);
+        way["name"](36.30766,-86.47862,36.32951,-86.44785);
+      );
+      out center;
+    `;
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+
+      try {
+        const response = await fetch(overpassUrl, {
+          method: 'POST',
+          body: overpassQuery,
+        });
+        const data = await response.json();
+
+        const datalist = document.getElementById('bsr-destinations');
+
+        data.elements.forEach((element) => {
+          const name = element.tags.name;
+          if (!name) return;
+
+          // ways have 'center' for coords, nodes have 'lat' and 'lon' directly
+          const lat = element.lat || element.center.lat;
+          const lon = element.lon || element.center.lon;
+
+          // Prevent duplicates in dropdown
+          if (!locationsMap[name]) {
+            locationsMap[name] = { lat, lon };
+            const option = document.createElement('option');
+            option.value = name;
+            datalist.appendChild(option);
+          }
+        });
+        statusEl.innerText = '';
+        checkUrlParams();
+      } catch (err) {
+        console.error(err);
+        statusEl.innerText = 'Failed to load locations. Please try refreshing.';
+      }
+    }
+
+    // 4. Handle URL Params
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const destParam = params.get('destination');
+      if (destParam && locationsMap[destParam]) {
+        document.getElementById('bsr-destination-input').value = destParam;
+        handleGoAction();
+      }
+    }
+
+    // 5. Handle Navigation / Mapping Logic
+    async function handleGoAction() {
+      const inputVal = document.getElementById('bsr-destination-input').value;
+      const statusEl = document.getElementById('bsr-status-message');
+
+      if (!inputVal || !locationsMap[inputVal]) {
+        statusEl.innerText = 'Please select a valid location from the list.';
+        return;
+      }
+
+      statusEl.innerText = '';
+      const destCoords = locationsMap[inputVal];
+
+      // Clear previous markers/routes
+      if (destinationMarker) map.removeLayer(destinationMarker);
+      if (currentRouteLayer) map.removeLayer(currentRouteLayer);
+      document.getElementById('bsr-directions').style.display = 'none';
+
+      // Place marker for destination
+      destinationMarker = L.marker([destCoords.lat, destCoords.lon], {
+        icon: createColorMarker('var(--Scouting_Red)'),
+      })
+        .addTo(map)
+        .bindPopup(`<b>${inputVal}</b>`)
+        .openPopup();
+
+      if (!isApp) {
+        // Web Failsafe: Just pan to the location
+        map.flyTo([destCoords.lat, destCoords.lon], 16);
+        return;
+      }
+
+      // App Navigation Logic (Capacitor)
+      try {
+        statusEl.innerText = 'Finding your location...';
+        const position = await Geolocate.getCurrentPosition({
+          enableHighAccuracy: true,
+        });
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+
+        statusEl.innerText = 'Calculating route...';
+        await calculateRoute(userLat, userLon, destCoords.lat, destCoords.lon);
+        statusEl.innerText = '';
+      } catch (error) {
+        console.error(error);
+        statusEl.innerText =
+          'Could not get your location or calculate a route. Showing destination instead.';
+        map.flyTo([destCoords.lat, destCoords.lon], 16);
+      }
+    }
+
+    // 6. GraphHopper Routing
+    async function calculateRoute(startLat, startLon, endLat, endLon) {
+      // Foot profile for trails/camps, change to 'car' if needed
+      const url = `https://graphhopper.com/api/1/route?point=${startLat},${startLon}&point=${endLat},${endLon}&profile=foot&locale=en&calc_points=true&points_encoded=false&key=${graphhopperApiKey}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.paths && data.paths.length > 0) {
+        const path = data.paths[0];
+
+        // 1. Draw the Polyline
+        const coords = path.points.coordinates.map((c) => [c[1], c[0]]);
+        currentRouteLayer = L.polyline(coords, {
+          color: 'blue',
+          weight: 5,
+        }).addTo(map);
+
+        // 2. Add user marker
+        L.marker([startLat, startLon], {
+          icon: createColorMarker('var(--Scouting_Dark_Blue)'),
+        })
+          .addTo(map)
+          .bindPopup('You are here');
+
+        // 3. Zoom map to fit the route
+        map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
+
+        // 4. GENERATE DIRECTIONS
+        if (path.instructions && path.instructions.length > 0) {
+          const directionsList = document.getElementById('bsr-directions-list');
+          directionsList.innerHTML = ''; // Clear old instructions
+
+          path.instructions.forEach((instruction) => {
+            const li = document.createElement('li');
+
+            // Convert meters to feet, round it, and add US commas
+            const distanceInFeet = Math.round(instruction.distance * 3.28084);
+            const formattedDistance = distanceInFeet.toLocaleString('en-US');
+
+            const distanceText =
+              instruction.distance > 0 ? ` (${formattedDistance} ft)` : '';
+
+            // Set the text (e.g., "Turn left onto Trail A (1,480 ft)")
+            li.innerText = instruction.text + distanceText;
+            directionsList.appendChild(li);
+          });
+
+          // Reveal the directions panel
+          document.getElementById('bsr-directions').style.display = 'block';
+        }
+      } else {
+        throw new Error('No route found');
+      }
+    }
+
+    // Event Listeners
+    document
+      .getElementById('bsr-go-btn')
+      .addEventListener('click', handleGoAction);
+
+    // Trigger on Enter key
+    document
+      .getElementById('bsr-destination-input')
+      .addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') handleGoAction();
+      });
+
+    // Initialize data fetch
+    fetchLocations();
+  });
+</script>
+
+<div class="bsr-map-container">
+  <!-- Static Control Panel -->
+  <div class="bsr-controls">
+    <label for="bsr-destination-input">Find a Location:</label>
+    <div class="bsr-search-wrapper">
+      <input
+        type="text"
+        id="bsr-destination-input"
+        list="bsr-destinations"
+        placeholder="Search for a place..."
+        autocomplete="off"
+      />
+      <datalist id="bsr-destinations">
+        <!-- Options injected via Overpass API -->
+      </datalist>
+      <button id="bsr-go-btn" type="button">Go</button>
+    </div>
+    <div id="bsr-status-message"></div>
+  </div>
+
+  <!-- Map Display -->
+  <div id="bsr-map"></div>
+
+  <!-- Directions Panel (Hidden by default) -->
+  <div id="bsr-directions" style="display: none">
+    <h3>Directions</h3>
+    <ol id="bsr-directions-list"></ol>
+  </div>
+</div>

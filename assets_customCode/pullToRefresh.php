@@ -1,18 +1,29 @@
-function add_capacitor_pull_to_refresh() {
-// Load PullToRefresh library from CDN
-wp_enqueue_script(
-'pulltorefresh',
-'https://cdnjs.cloudflare.com/ajax/libs/pulltorefreshjs/0.1.22/index.umd.min.js',
-array(),
-null,
-true
-);
+<?php
+function add_capacitor_pull_to_refresh()
+{
+  // Load PullToRefresh library from CDN
+  wp_enqueue_script(
+    'pulltorefresh',
+    'https://cdnjs.cloudflare.com/ajax/libs/pulltorefreshjs/0.1.22/index.umd.min.js',
+    array(),
+    null,
+    true
+  );
 
-// Initialize the script
-wp_add_inline_script('pulltorefresh', "
+  // Initialize the script
+  wp_add_inline_script('pulltorefresh', "
 document.addEventListener('DOMContentLoaded', function() {
   PullToRefresh.init({
     mainElement: 'body',
+    shouldPullToRefresh: function() {
+      // 1. Check if the Leaflet map element exists and has the fullscreen class
+      var mapEl = document.getElementById('bsr-map');
+      var isMapFullscreen = mapEl && mapEl.classList.contains('leaflet-fullscreen-on');
+      
+      // 2. Default pull-to-refresh behavior requires the page to be scrolled to the top.
+      // We also require that the map is NOT in fullscreen.
+      return !isMapFullscreen && window.scrollY === 0;
+    },
     onRefresh: function() {
       window.location.reload();
     }
