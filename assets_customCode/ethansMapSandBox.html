@@ -137,9 +137,22 @@
         className: 'custom-color-marker',
         html: svg,
         iconSize: [30, 42],
-        iconAnchor: [15, 42], // Anchors the bottom tip of the pin to the map coordinates
-        popupAnchor: [0, -35], // Positions the popup right above the pin
+        iconAnchor: [15, 42],
+        popupAnchor: [0, -35],
       });
+    }
+
+    // Helper function to format distance (meters -> ft/miles)
+    function formatDistance(distanceInMeters) {
+      const distanceInFeet = distanceInMeters * 3.28084;
+      if (distanceInFeet >= 5280) {
+        // Convert to miles and round to 1 decimal place
+        const distanceInMiles = (distanceInFeet / 5280).toFixed(1);
+        return `${distanceInMiles} mi`;
+      } else {
+        // Return whole feet with commas
+        return `${Math.round(distanceInFeet).toLocaleString('en-US')} ft`;
+      }
     }
 
     // 2. Initialize Map
@@ -215,11 +228,40 @@
 
     // 4. Handle URL Params
     function checkUrlParams() {
-      const params = new URLSearchParams(window.location.search);
+      const queryString = window.location.search;
+      console.log(`[URL Diagnostics] Raw query string: "${queryString}"`);
+
+      const params = new URLSearchParams(queryString);
       const destParam = params.get('destination');
-      if (destParam && locationsMap[destParam]) {
-        document.getElementById('bsr-destination-input').value = destParam;
-        handleGoAction();
+      console.log(
+        `[URL Diagnostics] Parsed 'destination' parameter: "${destParam}"`,
+      );
+
+      if (destParam) {
+        console.log(
+          `[URL Diagnostics] Checking if "${destParam}" exists in locationsMap...`,
+        );
+        // Logs all known locations so you can check for exact spelling/casing matches
+        console.log(
+          `[URL Diagnostics] Current locationsMap keys:`,
+          Object.keys(locationsMap),
+        );
+
+        if (locationsMap[destParam]) {
+          console.log(
+            `[URL Diagnostics] Match found! Auto-populating input and triggering search.`,
+          );
+          document.getElementById('bsr-destination-input').value = destParam;
+          handleGoAction();
+        } else {
+          console.warn(
+            `[URL Diagnostics] WARNING: "${destParam}" was not found in the locationsMap. It either hasn't loaded from OpenStreetMap yet, or there is a spelling/casing mismatch.`,
+          );
+        }
+      } else {
+        console.log(
+          `[URL Diagnostics] No 'destination' parameter found in the URL. Proceeding normally.`,
+        );
       }
     }
 
@@ -288,16 +330,46 @@
         return;
       }
 
-      // Stage 2: Calculate Route
+      // Stage 2: Calculate Route (with Fallback)
       try {
         statusEl.innerText = 'Calculating route...';
         await calculateRoute(userLat, userLon, destCoords.lat, destCoords.lon);
         statusEl.innerText = ''; // Clear status on success
       } catch (error) {
-        console.error('Routing Error:', error);
-        // This will print the raw system error to your native UI
-        statusEl.innerText = `Routing Error: ${error.message}`;
-        map.flyTo([destCoords.lat, destCoords.lon], 16);
+        console.warn('Routing Error, falling back to direct line:', error);
+        statusEl.innerText = 'No pathway found. Showing direct line instead.';
+
+        // --- FALLBACK LOGIC ---
+
+        // 1. Draw straight dashed line to indicate an estimated, direct path
+        currentRouteLayer = L.polyline(
+          [
+            [userLat, userLon],
+            [destCoords.lat, destCoords.lon],
+          ],
+          { color: 'gray', weight: 4, dashArray: '10, 10' },
+        ).addTo(map);
+
+        // 2. Ensure map fits the new straight line
+        map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
+
+        // 3. Calculate distance using Leaflet's built-in distance method (returns meters)
+        const startLatLng = L.latLng(userLat, userLon);
+        const endLatLng = L.latLng(destCoords.lat, destCoords.lon);
+        const distanceMeters = startLatLng.distanceTo(endLatLng);
+
+        // Format string (uses miles if > 5280 ft)
+        const displayDistance = formatDistance(distanceMeters);
+
+        // 4. Update Directions Panel with fallback instruction
+        const directionsList = document.getElementById('bsr-directions-list');
+        directionsList.innerHTML = `
+          <li>
+            <b>Straight-Line Distance:</b> ${displayDistance} <br>
+            <i style="color: #666; font-size: 13px;">Note: A mapped pathway could not be found. Head generally towards the destination marker, but be aware of real-world obstacles and terrain.</i>
+          </li>`;
+
+        document.getElementById('bsr-directions').style.display = 'block';
       }
     }
 
@@ -333,12 +405,9 @@
           steps.forEach((step) => {
             const li = document.createElement('li');
 
-            // Convert meters to feet, round it, and add US commas
-            const distanceInFeet = Math.round(step.distance * 3.28084);
-            const formattedDistance = distanceInFeet.toLocaleString('en-US');
-
+            // Format distance string (uses miles if > 5280 ft)
             const distanceText =
-              step.distance > 0 ? ` (${formattedDistance} ft)` : '';
+              step.distance > 0 ? ` (${formatDistance(step.distance)})` : '';
 
             // Set the text (ORS uses 'instruction' instead of 'text')
             li.innerText = step.instruction + distanceText;
