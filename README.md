@@ -1,8 +1,6 @@
 # Middle Tennessee Council Event App <!-- omit in toc -->
 
-**Last updated August 3, 2026**
-
-> The current Android build is available at [/builds/app-debug.apk](/builds/app-debug.apk)
+**Last updated August 28, 2026**
 
 > The Github Repository for this project is [here](https://github.com/SAPIENTI0R/mtcEventAppDev).
 
