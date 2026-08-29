@@ -35,13 +35,29 @@
     gap: 10px;
   }
 
+  .bsr-search-container {
+    position: relative;
+    flex-grow: 1;
+  }
+
   .bsr-search-wrapper input {
     width: 100%;
     box-sizing: border-box;
-    padding: 10px;
+    padding: 10px 35px 10px 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
+  }
+
+  .bsr-clear-search {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+    display: none;
+    z-index: 10;
   }
 
   .bsr-dropdown {
@@ -57,7 +73,7 @@
     z-index: 1000;
     max-height: 250px;
     overflow-y: auto;
-    grid-template-columns: 1fr 1fr;
+    flex-direction: column;
     gap: 5px;
     padding: 5px;
     margin-top: 2px;
@@ -65,7 +81,7 @@
   }
 
   .bsr-dropdown.show {
-    display: grid;
+    display: flex;
   }
 
   .bsr-dropdown-item {
@@ -78,6 +94,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
   }
 
   .bsr-dropdown-item:hover, .bsr-dropdown-item:active {
@@ -131,6 +148,13 @@
   #bsr-directions-list li {
     margin-bottom: 8px;
   }
+
+  .bsr-fallback-note {
+    color: #666;
+    font-size: 13px;
+    display: block;
+    margin-top: 4px;
+  }
 </style>
 
 <!-- JavaScript-->
@@ -143,14 +167,15 @@
 
     // Bounding box for Boxwell Scout Reservation
     const bounds = [
-      [36.30766, -86.47862], // South-West
-      [36.32951, -86.44785], // North-East
+      [36.30686681473789, -86.47847920773354], // South-West
+      [36.32877841275319, -86.44562826095796], // North-East
     ];
+    const overpassBounds = `${bounds[0][0]},${bounds[0][1]},${bounds[1][0]},${bounds[1][1]}`;
 
     // Wider bounding box to prevent panning to other cities (roughly 5 miles wider)
     const maxMapBounds = [
-      [36.25766, -86.52862], // South-West
-      [36.37951, -86.39785], // North-East
+      [36.28747344347164, -86.49375812339811], // South-West
+      [36.33594716392268, -86.43211316095773], // North-East
     ];
 
     let locationsMap = {};
@@ -193,37 +218,32 @@
       minZoom: 12
     }).fitBounds(bounds);
 
+    // Helper function for user location
+    async function getUserCoords() {
+      if (isApp && typeof Geolocate !== 'undefined') {
+        const pos = await Geolocate.getCurrentPosition({ enableHighAccuracy: true });
+        return { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      } else if (navigator.geolocation) {
+        return new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            (err) => reject(err)
+          );
+        });
+      }
+      throw new Error('Geolocation not supported');
+    }
+
     // Automatically plot user location if available
     async function plotUserLocation() {
       try {
-        if (isApp) {
-          const position = await Geolocate.getCurrentPosition({
-            enableHighAccuracy: true,
-          });
-          const userLat = position.coords.latitude;
-          const userLon = position.coords.longitude;
-          if (!userMarker) {
-            userMarker = L.marker([userLat, userLon], {
-              icon: createColorMarker('var(--Scouting_Light_Blue)'),
-            })
-              .addTo(map)
-              .bindPopup('You are here');
-          }
-        } else if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const userLat = position.coords.latitude;
-              const userLon = position.coords.longitude;
-              if (!userMarker) {
-                userMarker = L.marker([userLat, userLon], {
-                  icon: createColorMarker('var(--Scouting_Light_Blue)'),
-                })
-                  .addTo(map)
-                  .bindPopup('You are here');
-              }
-            },
-            (err) => console.log('Browser geolocation error:', err),
-          );
+        const coords = await getUserCoords();
+        if (!userMarker) {
+          userMarker = L.marker([coords.lat, coords.lon], {
+            icon: createColorMarker('var(--Scouting_Light_Blue)'),
+          })
+            .addTo(map)
+            .bindPopup('You are here');
         }
       } catch (err) {
         console.log('Could not get user location on map load:', err);
@@ -252,12 +272,14 @@
       const statusEl = document.getElementById('bsr-status-message');
       statusEl.innerText = 'Loading map data...';
 
-      // Querying nodes and ways with names inside the bounds
+      // Querying nodes and ways with names or alt_names inside the bounds
       const overpassQuery = `
       [out:json][timeout:25];
       (
-        node["name"](36.30766,-86.47862,36.32951,-86.44785);
-        way["name"](36.30766,-86.47862,36.32951,-86.44785);
+        node["name"](${overpassBounds});
+        way["name"](${overpassBounds});
+        node["alt_name"](${overpassBounds});
+        way["alt_name"](${overpassBounds});
       );
       out center;
     `;
@@ -271,10 +293,21 @@
         const data = await response.json();
 
         const dropdown = document.getElementById('bsr-custom-dropdown');
+        const dropdownItemsData = [];
 
         data.elements.forEach((element) => {
-          const name = element.tags.name;
+          // Filter out roads and trails
+          if (element.tags.highway) return;
+
+          // Use name, or fallback to alt_name if name is missing
+          const name = element.tags.name || element.tags.alt_name;
+          const altName = element.tags.alt_name;
+          
           if (!name) return;
+
+          // Filter out any item containing "XC#"
+          if (name.includes('XC#')) return;
+          if (altName && altName.includes('XC#')) return;
 
           // ways have 'center' for coords, nodes have 'lat' and 'lon' directly
           const lat = element.lat || element.center.lat;
@@ -283,19 +316,38 @@
           // Prevent duplicates in dropdown
           if (!locationsMap[name]) {
             locationsMap[name] = { lat, lon };
-            
-            const item = document.createElement('div');
-            item.className = 'bsr-dropdown-item';
-            item.textContent = name;
-            
-            item.addEventListener('click', () => {
-              document.getElementById('bsr-destination-input').value = name;
-              dropdown.classList.remove('show');
-              handleGoAction();
+            dropdownItemsData.push({
+              value: name,
+              displayText: name
             });
-            
-            dropdown.appendChild(item);
           }
+
+          // Also add alt_name as a searchable option if it exists and differs from name
+          if (altName && altName !== name && !locationsMap[altName]) {
+            locationsMap[altName] = { lat, lon };
+            dropdownItemsData.push({
+              value: altName,
+              displayText: altName
+            });
+          }
+        });
+
+        // Sort items alphabetically by display text
+        dropdownItemsData.sort((a, b) => a.displayText.localeCompare(b.displayText));
+
+        // Create and append DOM elements
+        dropdownItemsData.forEach(itemData => {
+          const item = document.createElement('div');
+          item.className = 'bsr-dropdown-item';
+          item.textContent = itemData.displayText;
+          
+          item.addEventListener('click', () => {
+            document.getElementById('bsr-destination-input').value = itemData.value;
+            dropdown.classList.remove('show');
+            handleGoAction();
+          });
+          
+          dropdown.appendChild(item);
         });
         statusEl.innerText = '';
         checkUrlParams();
@@ -307,40 +359,16 @@
 
     // 4. Handle URL Params
     function checkUrlParams() {
-      const queryString = window.location.search;
-      console.log(`[URL Diagnostics] Raw query string: "${queryString}"`);
-
-      const params = new URLSearchParams(queryString);
+      const params = new URLSearchParams(window.location.search);
       const destParam = params.get('destination');
-      console.log(
-        `[URL Diagnostics] Parsed 'destination' parameter: "${destParam}"`,
-      );
 
       if (destParam) {
-        console.log(
-          `[URL Diagnostics] Checking if "${destParam}" exists in locationsMap...`,
-        );
-        // Logs all known locations so you can check for exact spelling/casing matches
-        console.log(
-          `[URL Diagnostics] Current locationsMap keys:`,
-          Object.keys(locationsMap),
-        );
-
         if (locationsMap[destParam]) {
-          console.log(
-            `[URL Diagnostics] Match found! Auto-populating input and triggering search.`,
-          );
           document.getElementById('bsr-destination-input').value = destParam;
           handleGoAction();
         } else {
-          console.warn(
-            `[URL Diagnostics] WARNING: "${destParam}" was not found in the locationsMap. It either hasn't loaded from OpenStreetMap yet, or there is a spelling/casing mismatch.`,
-          );
+          console.warn(`Destination "${destParam}" not found in locations.`);
         }
-      } else {
-        console.log(
-          `[URL Diagnostics] No 'destination' parameter found in the URL. Proceeding normally.`,
-        );
       }
     }
 
@@ -383,11 +411,9 @@
       // Stage 1: Get User Location
       try {
         statusEl.innerText = 'Finding your location...';
-        const position = await Geolocate.getCurrentPosition({
-          enableHighAccuracy: true,
-        });
-        userLat = position.coords.latitude;
-        userLon = position.coords.longitude;
+        const coords = await getUserCoords();
+        userLat = coords.lat;
+        userLon = coords.lon;
 
         // Draw the user marker immediately
         userMarker = L.marker([userLat, userLon], {
@@ -449,7 +475,7 @@
         directionsList.innerHTML = `
           <li>
             <b>Straight-Line Distance:</b> ${displayDistance} <br>
-            <i style="color: #666; font-size: 13px;">Note: A mapped pathway could not be found. Head generally towards the destination marker, but be aware of real-world obstacles and terrain.</i>
+            <span class="bsr-fallback-note">Note: A mapped pathway could not be found. Head generally towards the destination marker, but be aware of real-world obstacles and terrain.</span>
           </li>`;
 
         document.getElementById('bsr-directions').style.display = 'block';
@@ -562,10 +588,12 @@
       }
     });
 
-    searchInput.addEventListener('focus', function() {
-      if (Object.keys(locationsMap).length > 0) {
-        this.dispatchEvent(new Event('input'));
-      }
+    ['focus', 'click'].forEach(evt => {
+      searchInput.addEventListener(evt, function() {
+        if (Object.keys(locationsMap).length > 0) {
+          this.dispatchEvent(new Event('input'));
+        }
+      });
     });
 
     // Hide dropdown when clicking outside
@@ -584,9 +612,9 @@
   <!-- Static Control Panel -->
   <div class="bsr-controls">
     <div class="bsr-search-wrapper">
-      <div style="position: relative; flex-grow: 1;">
-        <input type="text" id="bsr-destination-input" placeholder="Search for a place..." autocomplete="off" style="padding-right: 35px;" />
-        <span id="bsr-clear-search-wrapper" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; z-index: 10;">
+      <div class="bsr-search-container">
+        <input type="text" id="bsr-destination-input" placeholder="Search for a place..." autocomplete="off" />
+        <span id="bsr-clear-search-wrapper" class="bsr-clear-search">
           <i class="fas fa-times"></i>
         </span>
         <div id="bsr-custom-dropdown" class="bsr-dropdown"></div>
