@@ -9,7 +9,8 @@ h1.wp-block-post-title {
 }
 
 /* SCROLL TO REFRESH */
-html, body {
+html,
+body {
   overscroll-behavior-y: contain;
   touch-action: pan-x pan-y;
 }

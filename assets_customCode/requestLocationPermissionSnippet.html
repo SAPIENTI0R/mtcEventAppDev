@@ -15,15 +15,17 @@
      */
     const updateUI = (result) => {
       // Handle fallback strings from catch blocks (e.g., 'prompt' or 'denied')
-      const locationStatus = typeof result === 'string' ? result : result.location;
-      const coarseStatus = typeof result === 'string' ? result : result.coarseLocation;
+      const locationStatus =
+        typeof result === 'string' ? result : result.location;
+      const coarseStatus =
+        typeof result === 'string' ? result : result.coarseLocation;
 
       if (locationStatus === 'granted' && coarseStatus === 'denied') {
         permissionButton.style.display = 'inline-block';
         permissionButton.style.opacity = '0.5';
         permissionButton.style.pointerEvents = 'none';
         permissionButton.innerHTML =
-          "Please enter your phone settings and enable precise location access";
+          'Please enter your phone settings and enable precise location access';
       } else if (locationStatus === 'granted') {
         permissionButton.style.display = 'none';
       } else if (locationStatus === 'denied') {
@@ -36,7 +38,7 @@
         permissionButton.style.display = 'inline-block';
         permissionButton.style.opacity = '1';
         permissionButton.style.pointerEvents = 'auto';
-        
+
         // Clear any previous listener instance before adding the new one
         permissionButton.removeEventListener('click', handleRequestPermission);
         permissionButton.addEventListener('click', handleRequestPermission, {
@@ -75,7 +77,7 @@
       }
     };
 
-    // Initialize state check on page load. 
+    // Initialize state check on page load.
     await syncPermissions();
 
     // Listen for the app returning from background
