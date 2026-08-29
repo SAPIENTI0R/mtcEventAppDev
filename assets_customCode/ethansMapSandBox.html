@@ -1,16 +1,10 @@
 <!-- Leaflet CSS & JS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Leaflet Fullscreen CSS & JS -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet.fullscreen@4.0.0/Control.FullScreen.css"
-/>
-<script src="https://unpkg.com/leaflet.fullscreen@4.0.0/Control.FullScreen.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/dist/Control.FullScreen.css" />
+<script src="https://unpkg.com/leaflet.fullscreen/dist/Control.FullScreen.umd.js"></script>
 
 <!-- CSS Styles-->
 <style>
@@ -42,31 +36,62 @@
   }
 
   .bsr-search-wrapper input {
-    flex-grow: 1;
+    width: 100%;
+    box-sizing: border-box;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
   }
 
-  .bsr-search-wrapper button {
-    padding: 10px 20px;
-    background: var(--Scouting_Red);
-    color: var(--White);
-    border: none;
+  .bsr-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 5px;
+    margin-top: 2px;
+    box-sizing: border-box;
   }
 
-  .bsr-search-wrapper button:hover {
-    filter: brightness(0.85);
+  .bsr-dropdown.show {
+    display: grid;
+  }
+
+  .bsr-dropdown-item {
+    padding: 10px;
+    background: #f7f7f7;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bsr-dropdown-item:hover, .bsr-dropdown-item:active {
+    background: #e0e0e0;
   }
 
   #bsr-status-message {
     margin-top: 10px;
     font-size: 14px;
     color: var(--Scouting_Red);
+  }
+
+  #bsr-status-message:empty {
+    display: none;
   }
 
   #bsr-map {
@@ -116,10 +141,16 @@
     const orsApiKey =
       'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjZjYzY1NjNkZmEwMzQ5MDZhOTUyMjcyZjc5ZDRiOWIwIiwiaCI6Im11cm11cjY0In0=';
 
-    // Bounding box for Boxwell Scout Reservation: SW to NE
+    // Bounding box for Boxwell Scout Reservation
     const bounds = [
       [36.30766, -86.47862], // South-West
       [36.32951, -86.44785], // North-East
+    ];
+
+    // Wider bounding box to prevent panning to other cities (roughly 5 miles wider)
+    const maxMapBounds = [
+      [36.25766, -86.52862], // South-West
+      [36.37951, -86.39785], // North-East
     ];
 
     let locationsMap = {};
@@ -157,9 +188,48 @@
 
     // 2. Initialize Map
     const map = L.map('bsr-map', {
-      maxBounds: bounds,
-      maxBoundsViscosity: 1.0,
+      maxBounds: maxMapBounds,
+      maxBoundsViscosity: 0.8,
+      minZoom: 12
     }).fitBounds(bounds);
+
+    // Automatically plot user location if available
+    async function plotUserLocation() {
+      try {
+        if (isApp) {
+          const position = await Geolocate.getCurrentPosition({
+            enableHighAccuracy: true,
+          });
+          const userLat = position.coords.latitude;
+          const userLon = position.coords.longitude;
+          if (!userMarker) {
+            userMarker = L.marker([userLat, userLon], {
+              icon: createColorMarker('var(--Scouting_Light_Blue)'),
+            })
+              .addTo(map)
+              .bindPopup('You are here');
+          }
+        } else if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLon = position.coords.longitude;
+              if (!userMarker) {
+                userMarker = L.marker([userLat, userLon], {
+                  icon: createColorMarker('var(--Scouting_Light_Blue)'),
+                })
+                  .addTo(map)
+                  .bindPopup('You are here');
+              }
+            },
+            (err) => console.log('Browser geolocation error:', err),
+          );
+        }
+      } catch (err) {
+        console.log('Could not get user location on map load:', err);
+      }
+    }
+    plotUserLocation();
 
     // Explicitly add the fullscreen control
     if (L.Control.FullScreen) {
@@ -200,7 +270,7 @@
         });
         const data = await response.json();
 
-        const datalist = document.getElementById('bsr-destinations');
+        const dropdown = document.getElementById('bsr-custom-dropdown');
 
         data.elements.forEach((element) => {
           const name = element.tags.name;
@@ -213,9 +283,18 @@
           // Prevent duplicates in dropdown
           if (!locationsMap[name]) {
             locationsMap[name] = { lat, lon };
-            const option = document.createElement('option');
-            option.value = name;
-            datalist.appendChild(option);
+            
+            const item = document.createElement('div');
+            item.className = 'bsr-dropdown-item';
+            item.textContent = name;
+            
+            item.addEventListener('click', () => {
+              document.getElementById('bsr-destination-input').value = name;
+              dropdown.classList.remove('show');
+              handleGoAction();
+            });
+            
+            dropdown.appendChild(item);
           }
         });
         statusEl.innerText = '';
@@ -360,6 +439,10 @@
 
         // Format string (uses miles if > 5280 ft)
         const displayDistance = formatDistance(distanceMeters);
+        
+        // Format total distance in miles for the header
+        const distanceMiles = (distanceMeters * 0.000621371).toFixed(1);
+        document.getElementById('bsr-directions-title').innerText = `Directions (${distanceMiles} mi)`;
 
         // 4. Update Directions Panel with fallback instruction
         const directionsList = document.getElementById('bsr-directions-list');
@@ -397,6 +480,14 @@
 
         // 3. GENERATE DIRECTIONS
         const steps = feature.properties.segments[0].steps;
+        const summary = feature.properties.summary;
+        
+        if (summary && summary.distance !== undefined) {
+          const totalDistanceMiles = (summary.distance * 0.000621371).toFixed(1);
+          document.getElementById('bsr-directions-title').innerText = `Directions (${totalDistanceMiles} mi)`;
+        } else {
+          document.getElementById('bsr-directions-title').innerText = 'Directions';
+        }
 
         if (steps && steps.length > 0) {
           const directionsList = document.getElementById('bsr-directions-list');
@@ -428,9 +519,6 @@
     }
 
     // Event Listeners
-    document
-      .getElementById('bsr-go-btn')
-      .addEventListener('click', handleGoAction);
 
     // Trigger on Enter key
     document
@@ -438,6 +526,54 @@
       .addEventListener('keypress', function (e) {
         if (e.key === 'Enter') handleGoAction();
       });
+
+    // Custom Dropdown Logic
+    const searchInput = document.getElementById('bsr-destination-input');
+    const customDropdown = document.getElementById('bsr-custom-dropdown');
+    const clearBtnWrapper = document.getElementById('bsr-clear-search-wrapper');
+
+    clearBtnWrapper.addEventListener('click', function() {
+      searchInput.value = '';
+      clearBtnWrapper.style.display = 'none';
+      customDropdown.classList.remove('show');
+      searchInput.focus();
+    });
+
+    searchInput.addEventListener('input', function() {
+      clearBtnWrapper.style.display = this.value.length > 0 ? 'block' : 'none';
+      const filter = this.value.toLowerCase();
+      const items = customDropdown.getElementsByClassName('bsr-dropdown-item');
+      let hasVisibleItems = false;
+      
+      for (let i = 0; i < items.length; i++) {
+        const txtValue = items[i].textContent || items[i].innerText;
+        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+          items[i].style.display = "";
+          hasVisibleItems = true;
+        } else {
+          items[i].style.display = "none";
+        }
+      }
+      
+      if (hasVisibleItems) {
+        customDropdown.classList.add('show');
+      } else {
+        customDropdown.classList.remove('show');
+      }
+    });
+
+    searchInput.addEventListener('focus', function() {
+      if (Object.keys(locationsMap).length > 0) {
+        this.dispatchEvent(new Event('input'));
+      }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target !== searchInput && !customDropdown.contains(e.target)) {
+        customDropdown.classList.remove('show');
+      }
+    });
 
     // Initialize data fetch
     fetchLocations();
@@ -448,17 +584,13 @@
   <!-- Static Control Panel -->
   <div class="bsr-controls">
     <div class="bsr-search-wrapper">
-      <input
-        type="text"
-        id="bsr-destination-input"
-        list="bsr-destinations"
-        placeholder="Search for a place..."
-        autocomplete="off"
-      />
-      <datalist id="bsr-destinations">
-        <!-- Options injected via Overpass API -->
-      </datalist>
-      <button id="bsr-go-btn" type="button">Go</button>
+      <div style="position: relative; flex-grow: 1;">
+        <input type="text" id="bsr-destination-input" placeholder="Search for a place..." autocomplete="off" style="padding-right: 35px;" />
+        <span id="bsr-clear-search-wrapper" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; z-index: 10;">
+          <i class="fas fa-times"></i>
+        </span>
+        <div id="bsr-custom-dropdown" class="bsr-dropdown"></div>
+      </div>
     </div>
     <div id="bsr-status-message"></div>
   </div>
@@ -468,7 +600,7 @@
 
   <!-- Directions Panel (Hidden by default) -->
   <div id="bsr-directions" style="display: none">
-    <h3>Directions</h3>
+    <h3 id="bsr-directions-title">Directions</h3>
     <ol id="bsr-directions-list"></ol>
   </div>
 </div>
