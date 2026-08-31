@@ -218,6 +218,82 @@
       minZoom: 12
     }).fitBounds(bounds);
 
+    // Custom Compass Control
+    const CompassControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function(map) {
+        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control bsr-compass-control');
+        div.innerHTML = `
+          <div style="background: white; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer;" title="Compass">
+            <svg id="compass-icon" viewBox="0 0 100 100" width="30" height="30" style="transition: transform 0.1s linear; transform: rotate(0deg); transform-origin: center center;">
+              <circle cx="50" cy="50" r="45" fill="white" stroke="#ccc" stroke-width="2"/>
+              <polygon points="50,10 65,50 50,50" fill="#ff4444" />
+              <polygon points="50,10 35,50 50,50" fill="#cc0000" />
+              <polygon points="50,90 65,50 50,50" fill="#cccccc" />
+              <polygon points="50,90 35,50 50,50" fill="#999999" />
+              <circle cx="50" cy="50" r="4" fill="#333" />
+            </svg>
+          </div>
+        `;
+        L.DomEvent.disableClickPropagation(div);
+        
+        div.addEventListener('click', async () => {
+          // Request iOS 13+ device orientation permissions on click
+          if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+              const permission = await DeviceOrientationEvent.requestPermission();
+              if (permission !== 'granted') {
+                console.warn('Compass permission not granted');
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          // Also optionally re-center map on user when clicking compass
+          if (userMarker) {
+            map.flyTo(userMarker.getLatLng(), 16);
+          }
+        });
+        
+        return div;
+      }
+    });
+    map.addControl(new CompassControl());
+
+    // Setup Compass Listener
+    let hasAbsolute = false;
+    
+    function handleOrientation(event) {
+      const compass = document.getElementById('compass-icon');
+      if (!compass) return;
+
+      // Prefer absolute orientation if available
+      if (event.type === 'deviceorientationabsolute' || event.absolute) {
+        hasAbsolute = true;
+      }
+      
+      // If we've seen absolute events, ignore relative ones to prevent jitter
+      if (event.type === 'deviceorientation' && hasAbsolute && !event.absolute) {
+        return;
+      }
+
+      if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+        // iOS: webkitCompassHeading is clockwise (0=N, 90=E). Rotate needle CCW to stay pointing North.
+        compass.style.transform = `rotate(${-event.webkitCompassHeading}deg)`;
+      } else if (event.alpha !== null) {
+        // W3C standard: alpha is counter-clockwise (0=N, 90=W). Rotate needle CW to stay pointing North.
+        compass.style.transform = `rotate(${event.alpha}deg)`;
+      }
+    }
+
+    // Modern Android browsers use deviceorientationabsolute for true compass heading
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', handleOrientation);
+    }
+    // Fallback standard deviceorientation (which is relative on Android, absolute on iOS)
+    window.addEventListener('deviceorientation', handleOrientation);
+
+
     // Helper function for user location
     async function getUserCoords() {
       if (isApp && typeof Geolocate !== 'undefined') {
