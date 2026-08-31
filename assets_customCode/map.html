@@ -155,6 +155,12 @@
     display: block;
     margin-top: 4px;
   }
+
+  .bsr-refresh-icon {
+    cursor: pointer;
+    margin-left: 5px;
+    -webkit-tap-highlight-color: transparent;
+  }
 </style>
 
 <!-- JavaScript-->
@@ -429,7 +435,7 @@
         checkUrlParams();
       } catch (err) {
         console.error(err);
-        statusEl.innerText = 'Failed to load locations. Please try refreshing.';
+        statusEl.innerHTML = 'Failed to load locations. Please try refreshing. <i class="fas fa-sync bsr-refresh-icon" onclick="this.classList.add(\'fa-spin\'); location.reload();" title="Reload Page"></i>';
       }
     }
 
